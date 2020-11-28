@@ -1,0 +1,8 @@
+{
+    "testRegex": "((\\.|/*.)(spec))\\.js?$",
+    "preset": "@shelf/jest-mongodb",
+    "globals": {
+        "__MONGO_URI__": "mongodb://localhost:27017",
+        "__MONGO_DB_NAME__" : "NSLAB"
+    }
+}
