@@ -1,0 +1,36 @@
+version: "3"
+services: 
+  controller: 
+    image: nslab/controller:2.0
+    build:
+      context: '.'
+      dockerfile: "Dockerfiles/Dockerfile.controller"
+    depends_on:
+      - mongo
+      - redis
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./Controller:/home/Controller
+    env_file:
+      - "./.envFiles/controller.env"
+    ports:
+      - "22222:22222"
+    networks:
+      - jujuby-net
+  mongo:
+    container_name: mongodb
+    image: mongo
+    volumes:
+      - ./MongoData:/data/db
+    networks:
+      - jujuby-net
+  redis:
+    image: redis
+    volumes:
+      - ./RedisData:/data
+    networks:
+      - jujuby-net
+networks:
+  jujuby-net:
+    driver: bridge
+        

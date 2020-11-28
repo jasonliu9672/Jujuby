@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 const autoIncrementFactory = require('mongoose-sequence')
-const HOST = '172.18.0.2:27017'
+const HOST = `${process.env.MONGODB}:27017`
 const DBNAME = 'nslab'
 mongoose.connect(`mongodb://${HOST}/${DBNAME}`, {
   useUnifiedTopology: true,

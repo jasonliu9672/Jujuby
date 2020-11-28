@@ -8,15 +8,14 @@ const Docker = Object.freeze({
       `docker run -d --rm --cap-add=NET_ADMIN --cap-add=SYS_MODULE --device /dev/net/tun --name ${containerName}`,
       '--sysctl net.ipv4.conf.all.rp_filter=2',
       '--ulimit memlock=-1:-1',
-      '--network twitch-net',
-      '-e USER=jasonliu9672@gmail.com -e PASS=\'ntur08921067\'',
+      `--network ${process.env.DOCKER_NETWORK}`,
+      `-e USER=${process.env.NORD_USER} -e PASS='${process.env.NORD_PWD}'`,
       `-e CONNECT=${serverId} -e LANGUAGE=${languages.join(',')} -e PERCENTAGES=${percentages.join(',')}`,
       '-e TECHNOLOGY=NordLynx',
       `-e COUNTRY=${country.replace(/ /g, '_')}`,
       `-e CONTROLLER_IP=${os.networkInterfaces().eth0[0].address}`,
       `-e ID=${containerId}`,
-      '-v /home/nslab/Desktop/netwatcher:/home/netwatcher',
-      '-v /home/nslab/Desktop/envFiles/.bashrc:/root/.bashrc',
+      `-v ${process.env.PROJECT_ROOT}/Prober:/home/${process.env.PROJECT_NAME}/Prober`,
       '-v /home/nslab/Desktop/envFiles/resolv.conf:/etc/resolv.conf',
       'nslab/prober:official'].join(' ')
     try {
