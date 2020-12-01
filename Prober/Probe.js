@@ -272,4 +272,6 @@ module.exports = ProbingPool
 
 if (require.main === module) {
   const probe = new StreamProbe('loltyler1')
+  const probingPool = new ProbingPool('zh')
+  probingPool.run()
 }

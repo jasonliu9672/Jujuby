@@ -1,6 +1,6 @@
 const { execSync } = require('child_process')
 const os = require('os')
-
+const Pen = require('../Pen')
 const Docker = Object.freeze({
   runProbeContainer: async (containerName, containerId, serverId, languages, percentages, country) => {
     /* Cannot use -it flag here */
@@ -15,12 +15,14 @@ const Docker = Object.freeze({
       `-e COUNTRY=${country.replace(/ /g, '_')}`,
       `-e CONTROLLER_IP=${os.networkInterfaces().eth0[0].address}`,
       `-e ID=${containerId}`,
-      `-v ${process.env.PROJECT_ROOT}/Prober:/home/${process.env.PROJECT_NAME}/Prober`,
-      '-v /home/nslab/Desktop/envFiles/resolv.conf:/etc/resolv.conf',
-      'nslab/prober:official'].join(' ')
+      `-e CACHE_URL=${process.env.CACHE_URL}`,
+      `-v ${process.env.PROJECT_ROOT}/Prober:/home/Prober`,
+      `-v ${process.env.PROJECT_ROOT}/.envFiles/resolv.conf:/etc/resolv.conf`,
+      'nslab/prober:2.0'].join(' ')
     try {
       await execSync(cmd)
       const stdout = await execSync('docker ps')
+      console.log(stdout.toString())
       if (stdout.toString().includes(containerName)) {
         return true
       }
@@ -52,12 +54,22 @@ const Docker = Object.freeze({
       console.log(e)
       throw e
     }
+  },
+  flushCache: async () => {
+    try {
+      await execSync(`docker exec ${process.env.CACHE_NAME} redis-cli FLUSHALL`)
+      Pen.write(`Redis cache is flushed`, 'yellow')
+    } catch (e) {
+      console.log(e)
+      throw e
+    }
   }
 })
 module.exports = Docker
 
 if (require.main === module) {
-  // const docker = Docker
+  const docker = Docker
+  Docker.flushCache()
   // docker.runProbeContainer('test', 'tw46', 'zh')
   // console.log(os.networkInterfaces().eth0[0].address)
 }

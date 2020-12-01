@@ -58,7 +58,7 @@ const NordVPN = Object.freeze({
       throw new Error('NordAPI-isValidServer Fetch Failed')
     }
   },
-  getRecommendServers: async (country, limit = 20) => {
+  getRecommendServers: async (country, limit = 100) => {
     try {
       const countryId = await NordVPN.getCountryIdentifierNumber(country)
       const response = await axios.get(`https://api.nordvpn.com/v1/servers/recommendations?filters\[country_id\]=${countryId}&limit=${20}`)
@@ -101,6 +101,6 @@ if (require.main === module) {
   //   .then(response => { console.log(response) }) // returns true
   // vpnObj.getLoadSortedSeversByCountry('UnitedStates')
   //   .then(response => { console.log(response) })
-  vpnObj.getRecommendServers('United States').then(res => console.log(res))
+  vpnObj.getRecommendServers('Taiwan').then(res => console.log(res))
   // vpnObj.getCountryIdentifierNumber('Norway').then(res => console.log(res))
 }

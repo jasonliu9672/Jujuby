@@ -16,21 +16,22 @@ services:
     ports:
       - "22222:22222"
     networks:
-      - jujuby-net
+      - main-net
   mongo:
     container_name: mongodb
     image: mongo
     volumes:
       - ./MongoData:/data/db
     networks:
-      - jujuby-net
+      - main-net
   redis:
+    container_name: cache
     image: redis
     volumes:
       - ./RedisData:/data
     networks:
-      - jujuby-net
+      - main-net
 networks:
-  jujuby-net:
+  main-net:
     driver: bridge
         

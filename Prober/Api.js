@@ -102,49 +102,51 @@ if (require.main === module) {
     })
   }
   const test = async () => {
-    const token = await API.authAPI('request').then(res => { return res.data })
-    console.log(token)
-    /// get Channel Id
-    // const testId = await API.twitchAPI('/helix/users', { login: channel })
-    //   .then(response => { return response.data.data[0].id })
-    // console.log(testId)
-    // await sleep(1000)
-    // /// check Online
-    // const isOnline = await API.twitchAPI('/helix/streams', { user_id: testId })
-    //   .then(response => {
-    //     const stream = response.data.data
-    //     if (stream.length > 0) { return true }
-    //     return false
-    //   })
-    // console.log(isOnline)
-    // /// search channel title
-    // const channelTitle = await API.twitchAPI('/helix/search/channels', { query: '簡到槍' })
-    //   .then(response => {
-    //     return response.data.data.filter(candidate => candidate.is_live)[0].display_name
-    //   })
-    // console.log(channelTitle)
-    /// getChannels
+    // get Channel Id
+    const testId = await API.twitchAPI('/helix/users', { login: channel })
+      .then(response => { return response.data.data[0].id })
+    console.log(testId)
+    await sleep(1000)
+    /// check Online
+    const isOnline = await API.twitchAPI('/helix/streams', { user_id: testId })
+      .then(response => {
+        const stream = response.data.data
+        if (stream.length > 0) { return true }
+        return false
+      })
+    console.log(isOnline)
+    /// search channel title
+    const channelTitle = await API.twitchAPI('/helix/search/channels', { query: 437148541 })
+      .then(response => {
+        return response.data.data
+      })
+    console.log(channelTitle)
+    // getChannels
     let keepGoing = true
     let localOffset = 0
     let after = ''
     const records = []
-    // while (keepGoing && localOffset <= 200) {
-    //   const response = await API.twitchAPI('/helix/streams', { language: 'zh', limit: 100, after: after })
-    //   const liveChannels = response.data.data
-    //   const liveChannelsDisplayName = await Promise.all(liveChannels.map(channel => {
-    //     return API.twitchAPI('/helix/search/channels', { query: channel.user_name })
-    //       .then(response => {
-    //         return Promise.resolve(response.data.data.filter(candidate => candidate.is_live)[0].display_name)
-    //       })
-    //   }))
-    //   records.push(liveChannels.map((channel, index) => { return { display_name: liveChannelsDisplayName[index], viewer_count: channel.viewer_count } }))
-    //   after = response.data.pagination.cursor
-    //   localOffset += response.data.data.length
-    //   if (liveChannels.length === 0) { keepGoing = false }
-    // }
-    // console.log([].concat.apply([], records).sort((a, b) => (a.viewer_count > b.viewer_count) ? -1 : ((b.viewer_count > a.viewer_count) ? 1 : 0)))
+    while (keepGoing && localOffset <= 100) {
+      const response = await API.twitchAPI('/helix/streams', { language: 'zh', limit: 100, after: after })
+      const liveChannels = response.data.data
+      console.log(liveChannels)
+      const liveChannelsDisplayName = await Promise.all(liveChannels.map(channel => {
+        return API.twitchAPI('/helix/search/channels', { query: channel.user_name })
+          .then(response => {
+            return Promise.resolve(response.data.data.filter(candidate => candidate.is_live)[0].display_name)
+          })
+      }))
+      // const liveChannelsDisplayName = await Promise.all(liveChannels.map(channel => channel.user_id))
+      records.push(liveChannels.map((channel, index) => { return { display_name: liveChannelsDisplayName[index], viewer_count: channel.viewer_count } }))
+      after = response.data.pagination.cursor
+      localOffset += response.data.data.length
+      if (liveChannels.length === 0) { keepGoing = false }
+    }
+    console.log([].concat.apply([], records).sort((a, b) => (a.viewer_count > b.viewer_count) ? -1 : ((b.viewer_count > a.viewer_count) ? 1 : 0)))
+    // API.twitchAPI(`/helix/channels`, { broadcaster_id: "514164340"})
+    //   .then(response => { console.log(response.data.data) })
     /// get channel access token
-    // await API.twitchAPI(`/api/channels/${channel}/access_token`)
+    // await API.twitchAPI(`/api/channels/riotgames/access_token`)
     //   .then(response => console.log(response.data))
     /// check is hosting
     // await API.hostingAPI('/hosts', { include_logins: 1, host: testId })
