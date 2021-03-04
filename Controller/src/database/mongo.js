@@ -18,5 +18,5 @@ const transactionDb = makeTransactionDb({ makeDb })
 module.exports = { transactionDb }
 if (require.main === module) {
   // transactionDb.findUnqiueIpFromCollection('Taiwan').then(res => console.log(res))
-  transactionDb.findByDateFromCollection('Taiwan', '2020-10-21', '2020-10-25').then(res => console.log(res[0]))
+  // transactionDb.findByDateFromCollection('Taiwan',0,5000,'2020-11-02','2020-11-09').then(res => console.log(res))
 }

@@ -4,7 +4,7 @@ module.exports = function makeProbesDb({ makeDb }) {
     findAllFromCollection,
     findUnqiueIpFromCollection,
     getStats,
-    findByDateFromCollection
+    findByQueryFromCollection
   })
   async function getAllCollections() {
     const db = await makeDb()
@@ -25,24 +25,55 @@ module.exports = function makeProbesDb({ makeDb }) {
     return transactions
   }
 
-  async function findByDateFromCollection(collectionName, start, end) {
+  async function findByQueryFromCollection(collectionName, skip, limit, start, end) {
     const db = await makeDb()
-    const result = db.collection(collectionName).find(
-      {
-        $expr: {
-          $and: [
-            { $gte: [{ $dateFromString: { dateString: '$start' } }, { $toDate: start }] },
-            { $lt: [{ $dateFromString: { dateString: '$end' } }, { $toDate: end }] }
+    const dateQuery = []
+    const lengthQuery = []
+    if (start) {
+      dateQuery.push({
+        "$gte": [
+          { $dateFromString: { dateString: '$start' } }, { $toDate: start }
+        ]
+      })
+    }
+    if (end) {
+      dateQuery.push(
+        {
+          "$lte": [
+            { $dateFromString: { dateString: '$end' } }, { $toDate: end }
           ]
         }
-      }
-    )
-    const transactions = await result.toArray()
+      )
+    }
+    if(skip) {
+      lengthQuery.push({
+        $skip: skip
+      })
+    }
+    if(limit){
+      lengthQuery.push({
+        $limit: limit
+      })
+    }
+    const transactions = await db.collection(collectionName).aggregate([
+      {
+        "$match": {
+          "$expr": {
+            "$and":
+              dateQuery
+
+          }
+        }
+      },
+      ...lengthQuery
+    ]).toArray()
     if (transactions.length === 0) {
-      return null
+      return []
     }
     return transactions
   }
+
+
   async function findUnqiueIpFromCollection(collectionName) {
     const db = await makeDb()
     const result = db.collection(collectionName).find()

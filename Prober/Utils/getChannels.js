@@ -1,4 +1,5 @@
 const API = require('../Api.js')
+const fs = require("fs");
 const { displayNameLookUp } = require('../DataAccess/redis-client.js')
 const getChannels = async (language = 'zh', limit = 100, offset = 0) => {
   const records = []
@@ -6,11 +7,11 @@ const getChannels = async (language = 'zh', limit = 100, offset = 0) => {
   let localOffset = offset
   let after = '' // Cursor for forward pagination: tells the server where to start fetching the next set of results, in a multi-page response. The cursor value specified here is from the pagination response field of a prior query.
   // parameter offset is capped at 900, see https://dev.twitch.tv/docs/v5/reference/streams#get-stream-by-user
-  while (keepGoing && localOffset <= 900) {
+  while (keepGoing && localOffset <= 1000) {
     const response = await API.twitchAPI('/helix/streams', { language: language, limit: 100, after: after })
     const liveChannels = response.data.data
     const liveChannelsDisplayName = await Promise.all(liveChannels.map(channel => { // Need to get broadcaster name for each channel
-      return displayNameLookUp(channel.user_name)
+      return displayNameLookUp(channel.user_name, channel.user_id)
       // return API.twitchAPI('/helix/search/channels', { query: channel.user_name })
       //   .then(response => {
       //     return Promise.resolve(response.data.data.filter(candidate => candidate.is_live)[0].display_name) // Only choose the channel that matches name and is alive
@@ -28,3 +29,10 @@ const getChannels = async (language = 'zh', limit = 100, offset = 0) => {
 }
 
 module.exports = { getChannels }
+if (require.main === module) {
+  getChannels(language = "en").then(res => {
+    const text = res.map(JSON.stringify).reduce((prev, next) => `${prev}\n${next}`);
+    fs.writeFileSync('./20210125_viewer_count.txt', text, 'utf-8');
+  }
+  )
+}

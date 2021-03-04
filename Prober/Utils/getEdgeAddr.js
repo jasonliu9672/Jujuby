@@ -77,9 +77,10 @@ if (require.main === module) {
   }
   const channel = 'never_loses'
   const test = async (channel) => {
-    getEdgeAddr(channel).then(addr => console.log(addr))
-    await sleep(1000)
-    getEdgeAddr(channel).then(addr => console.log(addr))
+    // getEdgeAddr(channel).then(addr => console.log(addr))
+    // await sleep(1000)
+    // getEdgeAddr(channel).then(addr => console.log(addr))
+    getAccessToken(channel).then(res => console.log(res))
   }
 
   test(channel)

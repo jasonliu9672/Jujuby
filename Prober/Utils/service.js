@@ -16,6 +16,7 @@ const totalViewers = getTotalViewers()
 let accuViewers = 0
 for (const stream of workerData.data) {
   accuViewers += stream.viewer_count
+  console.log(accuViewers)
   records.push(stream.display_name)
   if ((accuViewers / totalViewers) > workerData.percentage) { break }
 }

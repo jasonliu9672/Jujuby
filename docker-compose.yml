@@ -16,22 +16,28 @@ services:
     ports:
       - "22222:22222"
     networks:
-      - main-net
+      main-net:
+        ipv4_address: 172.27.0.2
   mongo:
     container_name: mongodb
     image: mongo
     volumes:
       - ./MongoData:/data/db
     networks:
-      - main-net
+      main-net:
+        ipv4_address: 172.27.0.3
   redis:
     container_name: cache
     image: redis
     volumes:
       - ./RedisData:/data
     networks:
-      - main-net
+      main-net:
+        ipv4_address: 172.27.0.4
 networks:
   main-net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.27.0.0/16
         

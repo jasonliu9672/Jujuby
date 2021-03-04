@@ -3,10 +3,6 @@ const express = require('express')
 const router = express.Router()
 const { transactionDb } = require('../database/mongo')
 router.get('/collection/list', (req, res) => {
-  // if (!req.body.start || !req.body.language) {
-  //   console.log('failed')
-  //   throw new Error('Either country or language must not be null')
-  // }
   transactionDb.getAllCollections().then((collections) => {
     return res.json({
       success: true,
@@ -26,20 +22,34 @@ router.get('/collection/list', (req, res) => {
 
 router.get('/collection/:name', (req, res) => {
   const collectionName = req.params.name
-  transactionDb.findAllFromCollection(collectionName).then((transactions) => {
-    return res.json({
-      success: true,
-      transactions: transactions
-    })
+  const skip = parseInt(req.query.skip)
+  const limit = parseInt(req.query.limit)
+  var start = req.query.start
+  var end = req.query.end
+  if(start){
+    start = start.substring(0,4) + '-' + start.substring(4,6) + '-' + start.substring(6,8)
   }
-  ).catch(
-    (error) => {
+  if(end){
+    end = end.substring(0,4) + '-' + end.substring(4,6) + '-' + end.substring(6,8)
+  }
+  // const start_string = start_number.substring(0,4) + '-' + start_number.substring(4,6) + '-' + start_number.substring(6,8)
+  // const end_string = end_number.substring(0,4) + '-' + end_number.substring(4,6) + '-' + end_number.substring(6,8)
+  // const startDate = req.params.startDate
+  // const endDate = req.params.endDate
+    transactionDb.findByQueryFromCollection(collectionName, skip, limit, start, end).then((transactions) => {
       return res.json({
-        success: false,
-        message: error
+        success: true,
+        transactions: transactions
       })
     }
-  )
+    ).catch(
+      (error) => {
+        return res.json({
+          success: false,
+          message: error
+        })
+      }
+    )
 })
 
 router.get('/collection/:name/uniqueip', (req, res) => {

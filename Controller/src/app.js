@@ -1,9 +1,16 @@
 const express = require('express')
+const https = require('https')
+const fs = require('fs');
 const bodyParser = require('body-parser')
 const dotenv = require('dotenv')
 const path = require('path')
 const cookieParser = require('cookie-parser')
 // const Controller = require('./controller')
+// const build_options = {
+//   key: fs.readFileSync('../secret/server-key.pem'),
+//   ca: [fs.readFileSync('../secret/cert.pem')],
+//   cert: fs.readFileSync('../secret/server-cert.pem')
+// };
 const cors = require('cors')
 const userRouter = require('./routes/user.js')
 const transactionRouter = require('./routes/transaction.js')
@@ -82,6 +89,11 @@ app.use(`${APIRoot}/crawler`, crawlerRouter)
 app.use(`${APIRoot}/user`, userRouter)
 /* DB query API */
 app.use(`${APIRoot}/database`, transactionRouter)
+
+// https.createServer(options, function (req, res) {
+//   console.log('Server is listening on port 22222')
+//   res.writeHead(200);
+// }).listen(22222);
 
 app.listen(22222, () => {
   console.log('Server is listening on port 22222')

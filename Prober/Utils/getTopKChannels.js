@@ -26,7 +26,8 @@ const getTopKChannels = async (language = 'es', percentage = 0.8) => {
 module.exports = { getTopKChannels }
 
 if (require.main === module) {
+  console.log("hi")
   // eslint-disable-next-line no-undef
-  getTopKChannels(language = 'zh')
-  // getTopKChannels().then(result => { console.dir(result, { depth: null }); console.log(result.length) })
+  // getTopKChannels(language = 'zh').then( res => console.log(res))
+  Twitch.getChannelsByLanguage('zh').then(result => { console.log(result) })
 }

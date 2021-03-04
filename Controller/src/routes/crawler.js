@@ -5,7 +5,7 @@ const middlewares = require('./middlewares')
 const probeAPI = require('../utils/probeApi')
 const router = express.Router()
 const controller = new Controller()
-const cacheFlusher = new CacheFlusher()
+// const cacheFlusher = new CacheFlusher()
 
 /* Start Express API definition here */
 /**

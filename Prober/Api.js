@@ -6,7 +6,7 @@ const { Pen } = require('./Pen.js')
 const axiosLookupBeforeRequest = axios.create({})
 
 let requestCount = 0
-let accessToken = '0b2luuxo8cxnhsttgzbxenvlfzvfxw'
+let accessToken = 'kqk4tnkzso320k8q20zmmo9aadniai'
 const reportRequestCountInterval = 30 // seconds
 const reportRequestCountTimer = setInterval(() => {
   Pen.write(`Sent requests to Twitch: ${requestCount}`, 'cyan')
@@ -40,6 +40,7 @@ const buildOptions = (api, args) => {
   switch (urlObj.hostname) {
     case 'api.twitch.tv':
       if (urlObj.pathname.split('/').slice(-1)[0] === 'access_token') {
+        console.log('yes')
         options.headers = { Accept: acceptType, 'Client-Id': clientIdForOldApi }
       } else {
         options.headers = { Accept: acceptType, Authorization: '', 'Client-Id': clientIdForHelixApi }
@@ -51,7 +52,7 @@ const buildOptions = (api, args) => {
       break
     case 'usher.ttvnw.net':
     case 'tmi.twitch.tv':
-      options.params = { ...{ client_id: clientIdForOldApi }, ...args }
+      options.params = { ...{ client_id: clientIdForHelixApi }, ...args }
       break
   }
 
@@ -102,61 +103,72 @@ if (require.main === module) {
     })
   }
   const test = async () => {
-    // get Channel Id
+    // // get Channel Id
     const testId = await API.twitchAPI('/helix/users', { login: channel })
       .then(response => { return response.data.data[0].id })
     console.log(testId)
-    await sleep(1000)
-    /// check Online
-    const isOnline = await API.twitchAPI('/helix/streams', { user_id: testId })
-      .then(response => {
-        const stream = response.data.data
-        if (stream.length > 0) { return true }
-        return false
-      })
-    console.log(isOnline)
-    /// search channel title
-    const channelTitle = await API.twitchAPI('/helix/search/channels', { query: 437148541 })
-      .then(response => {
-        return response.data.data
-      })
-    console.log(channelTitle)
-    // getChannels
-    let keepGoing = true
-    let localOffset = 0
-    let after = ''
-    const records = []
-    while (keepGoing && localOffset <= 100) {
-      const response = await API.twitchAPI('/helix/streams', { language: 'zh', limit: 100, after: after })
-      const liveChannels = response.data.data
-      console.log(liveChannels)
-      const liveChannelsDisplayName = await Promise.all(liveChannels.map(channel => {
-        return API.twitchAPI('/helix/search/channels', { query: channel.user_name })
-          .then(response => {
-            return Promise.resolve(response.data.data.filter(candidate => candidate.is_live)[0].display_name)
-          })
-      }))
-      // const liveChannelsDisplayName = await Promise.all(liveChannels.map(channel => channel.user_id))
-      records.push(liveChannels.map((channel, index) => { return { display_name: liveChannelsDisplayName[index], viewer_count: channel.viewer_count } }))
-      after = response.data.pagination.cursor
-      localOffset += response.data.data.length
-      if (liveChannels.length === 0) { keepGoing = false }
-    }
-    console.log([].concat.apply([], records).sort((a, b) => (a.viewer_count > b.viewer_count) ? -1 : ((b.viewer_count > a.viewer_count) ? 1 : 0)))
-    // API.twitchAPI(`/helix/channels`, { broadcaster_id: "514164340"})
-    //   .then(response => { console.log(response.data.data) })
-    /// get channel access token
-    // await API.twitchAPI(`/api/channels/riotgames/access_token`)
-    //   .then(response => console.log(response.data))
-    /// check is hosting
-    // await API.hostingAPI('/hosts', { include_logins: 1, host: testId })
+    // await sleep(1000)
+    // /// check Online
+    // const isOnline = await API.twitchAPI('/helix/streams', { user_id: testId })
     //   .then(response => {
-    //     const hostInfo = response.data.hosts[0]
-    //     if (('target_login' in hostInfo) && (hostInfo.target_login.toLowerCase() !== channel)) {
-    //       return true
-    //     }
+    //     const stream = response.data.data
+    //     if (stream.length > 0) { return true }
     //     return false
     //   })
+    // console.log(isOnline)
+    // /// search channel title
+    // const channelTitle = await API.twitchAPI('/helix/search/channels', { query: 437148541 })
+    //   .then(response => {
+    //     return response.data.data
+    //   })
+    // console.log(channelTitle)
+    // // getChannels
+    // let keepGoing = true
+    // let localOffset = 0
+    // let after = ''
+    // const records = []
+    // while (keepGoing && localOffset <= 100) {
+    //   const response = await API.twitchAPI('/helix/streams', { language: 'zh', limit: 100, after: after })
+    //   const liveChannels = response.data.data
+    //   console.log(liveChannels)
+    //   const liveChannelsDisplayName = await Promise.all(liveChannels.map(channel => {
+    //     return API.twitchAPI('/helix/search/channels', { query: channel.user_name })
+    //       .then(response => {
+    //         return Promise.resolve(response.data.data.filter(candidate => candidate.is_live)[0].display_name)
+    //       })
+    //   }))
+    //   // const liveChannelsDisplayName = await Promise.all(liveChannels.map(channel => channel.user_id))
+    //   records.push(liveChannels.map((channel, index) => { return { display_name: liveChannelsDisplayName[index], viewer_count: channel.viewer_count } }))
+    //   after = response.data.pagination.cursor
+    //   localOffset += response.data.data.length
+    //   if (liveChannels.length === 0) { keepGoing = false }
+    // }
+    // console.log([].concat.apply([], records).sort((a, b) => (a.viewer_count > b.viewer_count) ? -1 : ((b.viewer_count > a.viewer_count) ? 1 : 0)))
+    // API.twitchAPI(`/helix/channels`, { broadcaster_id: "514164340"})
+    //   .then(response => { console.log(response.data.data) })
+    // // get channel access token
+    await API.twitchAPI(`/api/channels/xargon0731/access_token`)
+      .then(response => console.log(response.data))
+    // const params = {
+    //   player: 'twitchweb',
+    //   token: token.token,
+    //   sig: token.sig,
+    //   allow_audio_only: true,
+    //   allow_source: true,
+    //   p: Math.floor(Math.random() * 99999) + 1
+    // }
+    // await API.usherAPI(`/api/channel/hls/xargon0731.m3u8`, params)
+    // .then(response => console.log(response.data))
+    // // check is hosting
+    await API.hostingAPI('/hosts', { include_logins: 1, host: testId })
+      .then(response => {
+        const hostInfo = response.data.hosts[0]
+        console.log(hostInfo)
+        if (('target_login' in hostInfo) && (hostInfo.target_login.toLowerCase() !== channel)) {
+          return true
+        }
+        return false
+      })
   }
   test()
 }
