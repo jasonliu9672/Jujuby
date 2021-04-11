@@ -1,20 +1,19 @@
 const { URL } = require('url') // (native) provides utilities for URL resolution and parsing
 const axios = require('axios')
 const { lookupDNSCache } = require('./Cache/DNSCache.js')
-const { Pen } = require('./Pen.js')
-// const { access } = require('fs')
-const axiosLookupBeforeRequest = axios.create({})
+const { addReqCount } = require('./RequestLogger.js')
 
-let requestCount = 0
-let accessToken = 'kqk4tnkzso320k8q20zmmo9aadniai'
-const reportRequestCountInterval = 30 // seconds
-const reportRequestCountTimer = setInterval(() => {
-  Pen.write(`Sent requests to Twitch: ${requestCount}`, 'cyan')
-}, reportRequestCountInterval * 1000)
+
+const accessToken = 'kqk4tnkzso320k8q20zmmo9aadniai'
+const clientIdForOldApi = 'kimne78kx3ncx6brgo4mv6wki5h1ko'
+const clientIdForHelixApi = '2xrd133djme37utzs215bqmwwz6hve' // client id for getting the api token
+const clientSecret = 'l5rahrb544myhzf6dopcc9cy5aq95t' // client secret obtained from app registration
 
 /* Add axios interceptor to do address replacement before every request */
+const axiosLookupBeforeRequest = axios.create({})
 axiosLookupBeforeRequest.interceptors.request.use(async (config) => {
-  requestCount += 1
+  addReqCount()
+
   const urlObj = new URL(config.url)
   const addr = await lookupDNSCache(urlObj.hostname)
 
@@ -34,7 +33,6 @@ const buildOptions = (api, args) => {
    * Public APIs have different argument format than private ones
    */
   const options = {}
-  const clientIdForOldApi = 'kimne78kx3ncx6brgo4mv6wki5h1ko'
   const acceptType = 'application/vnd.twitchtv.v5+json'
   const urlObj = new URL(api)
   switch (urlObj.hostname) {
@@ -50,6 +48,8 @@ const buildOptions = (api, args) => {
     case 'id.twitch.tv':
       options.headers = { Authorization: `OAuth ${accessToken}` }
       break
+    case 'gql.twitch.tv':
+      options.headers = { 'Client-ID': clientIdForOldApi, 'User-Agent': 'Mozilla/4.0; (UserAgent/1.0)' }
     case 'usher.ttvnw.net':
     case 'tmi.twitch.tv':
       options.params = { ...{ client_id: clientIdForHelixApi }, ...args }
@@ -58,9 +58,6 @@ const buildOptions = (api, args) => {
 
   return options
 }
-
-const clientIdForHelixApi = '2xrd133djme37utzs215bqmwwz6hve' // client id for getting the api token
-const clientSecret = 'l5rahrb544myhzf6dopcc9cy5aq95t' // client secret obtained from app registration
 
 class API {
   static axiosLookupBeforeGet(api, args) { return axiosLookupBeforeRequest.get(api, args) }
@@ -89,6 +86,26 @@ class API {
     return axiosLookupBeforeRequest.get(api, buildOptions(api, args))
   }
 
+  static gqlAPI(path, data, args) {
+    const api = `https://gql.twitch.tv${path}`
+    return axiosLookupBeforeRequest.post(api, data, buildOptions(api, args))
+  }
+
+  static buildGqlString(channel) {
+    const gqlData = {
+      "operationName":"PlaybackAccessToken_Template",
+      "query":"query PlaybackAccessToken_Template($login: String!, $isLive: Boolean!, $vodID: ID!, $isVod: Boolean!, $playerType: String!) {  streamPlaybackAccessToken(channelName: $login, params: {platform: \"web\", playerBackend: \"mediaplayer\", playerType: $playerType}) @include(if: $isLive) {    value    signature    __typename  }  videoPlaybackAccessToken(id: $vodID, params: {platform: \"web\", playerBackend: \"mediaplayer\", playerType: $playerType}) @include(if: $isVod) {    value    signature    __typename  }}",
+      "variables":{
+          "isLive":true,
+          "login":channel,
+          "isVod":false,
+          "vodID":"",
+          "playerType":"site"
+      }
+    }
+    return JSON.stringify(gqlData)
+  }
+
   static clearReportTimer() { clearInterval(reportRequestCountTimer) }
 
   static getRequestCount() { return requestCount }
@@ -96,17 +113,18 @@ class API {
 
 /* For testing */
 if (require.main === module) {
-  const channel = 'Destiny'
+  const channel = 'lck'
   const sleep = async (ms) => {
     return new Promise(resolve => {
       setTimeout(resolve, ms)
     })
   }
+
   const test = async () => {
-    // // get Channel Id
-    const testId = await API.twitchAPI('/helix/users', { login: channel })
-      .then(response => { return response.data.data[0].id })
-    console.log(testId)
+    // get Channel Id
+    // const testId = await API.twitchAPI('/helix/users', { login: channel })
+    //   .then(response => { return response.data.data[0].id })
+    // console.log(testId)
     // await sleep(1000)
     // /// check Online
     // const isOnline = await API.twitchAPI('/helix/streams', { user_id: testId })
@@ -147,7 +165,7 @@ if (require.main === module) {
     // API.twitchAPI(`/helix/channels`, { broadcaster_id: "514164340"})
     //   .then(response => { console.log(response.data.data) })
     // // get channel access token
-    await API.twitchAPI(`/api/channels/xargon0731/access_token`)
+    await API.twitchAPI(`/api/channels/lck/access_token`)
       .then(response => console.log(response.data))
     // const params = {
     //   player: 'twitchweb',
@@ -160,17 +178,25 @@ if (require.main === module) {
     // await API.usherAPI(`/api/channel/hls/xargon0731.m3u8`, params)
     // .then(response => console.log(response.data))
     // // check is hosting
-    await API.hostingAPI('/hosts', { include_logins: 1, host: testId })
-      .then(response => {
-        const hostInfo = response.data.hosts[0]
-        console.log(hostInfo)
-        if (('target_login' in hostInfo) && (hostInfo.target_login.toLowerCase() !== channel)) {
-          return true
-        }
-        return false
-      })
+    // await API.hostingAPI('/hosts', { include_logins: 1, host: testId })
+    //  .then(response => {
+    //    const hostInfo = response.data.hosts[0]
+    //    console.log(hostInfo)
+    //    if (('target_login' in hostInfo) && (hostInfo.target_login.toLowerCase() !== channel)) {
+    //      return true
+    //    }
+    //    return false
+    //  })
   }
-  test()
+  // test()
+
+  const testUsherToken = async => {
+    API.gqlAPI('/gql', API.buildGqlString('lck'))
+      .then( (response) => {
+        console.log(response.data.data.streamPlaybackAccessToken)
+      }) 
+  }
+  testUsherToken()
 }
 
 module.exports = API

@@ -17,5 +17,6 @@ class DnsCache extends BaseCache {
 const localDnsCache = new DnsCache()
 
 const lookupDNSCache = async (hostname) => { return localDnsCache.lookup(hostname) }
+const getDNSCacheInfo = () => { return localDnsCache.cacheInfo() } 
 
-module.exports = { lookupDNSCache }
+module.exports = { lookupDNSCache, getDNSCacheInfo }

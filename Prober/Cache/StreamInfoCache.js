@@ -17,8 +17,8 @@ class StreamInfoCache extends BaseCache {
   }
 
   getChannelAccessToken(channel) {
-    return API.twitchAPI(`/api/channels/${channel}/access_token`)
-      .then(response => response.data)
+    return API.gqlAPI('/gql', API.buildGqlString(channel))
+      .then( response => response.data.data.streamPlaybackAccessToken) 
   }
 
   updateChannelAccessToken(channel) {
@@ -35,8 +35,9 @@ const localStreamCache = new StreamInfoCache()
 
 const lookupStreamCache = async (channel) => { return localStreamCache.lookup(channel) }
 const updateChannelToken = (channel) => { return localStreamCache.updateChannelAccessToken(channel) }
+const getStreamCacheInfo = () => { return localStreamCache.cacheInfo() } 
 
-module.exports = { lookupStreamCache, updateChannelToken }
+module.exports = { lookupStreamCache, updateChannelToken, getStreamCacheInfo}
 
 if (require.main === module) {
   const sleep = async (ms) => {
@@ -44,7 +45,7 @@ if (require.main === module) {
       setTimeout(resolve, ms)
     })
   }
-  const channel = 'never_loses'
+  const channel = 'lck'
   const test = async (channel) => {
     lookupStreamCache(channel).then(addr => console.log(addr))
     await sleep(1000)

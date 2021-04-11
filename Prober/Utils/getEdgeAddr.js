@@ -11,11 +11,13 @@ function getAccessToken (channel) {
 function getMasterPlaylist (token, channel) {
   const params = {
     player: 'twitchweb',
-    token: token.token,
-    sig: token.sig,
-    allow_audio_only: true,
+    token: token.value,
+    sig: token.signature,
+    allow_audio_only: false,
+    fast_bread: true, 
     allow_source: true,
-    p: Math.floor(Math.random() * 99999) + 1
+    // p: Math.floor(Math.random() * 99999) + 1
+    p: Math.round(Math.random() * 1000000)
   }
   return API.usherAPI(`/api/channel/hls/${channel}.m3u8`, params)
     .then(response => response.data)
@@ -64,7 +66,7 @@ function getEdgeAddr (channel) {
       return urlObj.hostname
     })
     .then(hostname => lookupDNSCache(hostname))
-    .catch(error => { throw error })
+    .catch(error => { console.log(error); throw error })
 }
 
 module.exports = { getEdgeAddr }
@@ -75,13 +77,24 @@ if (require.main === module) {
       setTimeout(resolve, ms)
     })
   }
-  const channel = 'never_loses'
-  const test = async (channel) => {
-    // getEdgeAddr(channel).then(addr => console.log(addr))
-    // await sleep(1000)
-    // getEdgeAddr(channel).then(addr => console.log(addr))
-    getAccessToken(channel).then(res => console.log(res))
+  const channel = 'lck'
+  const testMultiCall = async (channel) => {
+    getEdgeAddr(channel).then(addr => console.log(addr))
+    await sleep(1000)
+    getEdgeAddr(channel).then(addr => console.log(addr))
+    await sleep(1000)
+    getEdgeAddr(channel).then(addr => console.log(addr))
+    await sleep(1000)
+    getEdgeAddr(channel).then(addr => console.log(addr))
+    await sleep(1000)
+    getEdgeAddr(channel).then(addr => console.log(addr))
   }
 
-  test(channel)
+  const test = async (channel) => {
+    console.log('Hello World')
+  }
+
+
+
+  // testMultiCall(channel)
 }
