@@ -24,7 +24,7 @@ function getMasterPlaylist (token, channel) {
 }
 
 // get Media Playlist that contains URLs of the files needed for streaming
-function parseMasterPlaylist (playlist) {
+function parseMasterPlaylist (playlist, channel) {
   const parsedPlaylist = []
   const lines = playlist.split('\n')
   for (let i = 4; i < lines.length - 1; i += 3) {
@@ -33,6 +33,15 @@ function parseMasterPlaylist (playlist) {
       resolution: (lines[i - 1].indexOf('RESOLUTION') !== -1 ? lines[i - 1].split('RESOLUTION=')[1].split(',')[0] : null),
       uri: lines[i]
     })
+  }
+
+  if (parsedPlaylist.length === 0) { // playlist format is different then above  
+    const playlistInfo = {
+      quality: lines[2].split('NAME="')[1].split('"')[0],
+      resolution: lines[3].split('RESOLUTION=')[1].split(',')[0],
+      uri: lines[4]
+    }
+    parsedPlaylist.push(playlistInfo)
   }
 
   return parsedPlaylist
@@ -58,7 +67,7 @@ function getEdgeUrl (raw) {
 function getEdgeAddr (channel) {
   return getAccessToken(channel)
     .then(token => getMasterPlaylist(token, channel))
-    .then(masterPlaylist => parseMasterPlaylist(masterPlaylist))
+    .then(masterPlaylist => parseMasterPlaylist(masterPlaylist, channel))
     .then(playlists => getBestQualityPlaylistUri(playlists))
     .then(uri => getPlaylistContent(uri))
     .then(rawContent => {
@@ -66,7 +75,7 @@ function getEdgeAddr (channel) {
       return urlObj.hostname
     })
     .then(hostname => lookupDNSCache(hostname))
-    .catch(error => { console.log(error); throw error })
+    .catch(error => { throw error })
 }
 
 module.exports = { getEdgeAddr }
@@ -77,24 +86,22 @@ if (require.main === module) {
       setTimeout(resolve, ms)
     })
   }
-  const channel = 'lck'
+  const channel = 'relaxing234'
   const testMultiCall = async (channel) => {
     getEdgeAddr(channel).then(addr => console.log(addr))
-    await sleep(1000)
-    getEdgeAddr(channel).then(addr => console.log(addr))
-    await sleep(1000)
-    getEdgeAddr(channel).then(addr => console.log(addr))
-    await sleep(1000)
-    getEdgeAddr(channel).then(addr => console.log(addr))
-    await sleep(1000)
-    getEdgeAddr(channel).then(addr => console.log(addr))
+    // await sleep(1000)
+    // getEdgeAddr(channel).then(addr => console.log(addr))
+    // await sleep(1000)
+    // getEdgeAddr(channel).then(addr => console.log(addr))
+    // await sleep(1000)
+    // getEdgeAddr(channel).then(addr => console.log(addr))
+    // await sleep(1000)
+    // getEdgeAddr(channel).then(addr => console.log(addr))
   }
 
   const test = async (channel) => {
     console.log('Hello World')
   }
 
-
-
-  // testMultiCall(channel)
+  testMultiCall(channel)
 }

@@ -45,7 +45,7 @@ class ProbingPool {
         let initStatus = true
         for (const channel of channels) {
           if (initStatus) { await new Promise(r => setTimeout(r, 2000)); initStatus = false } // wait for cache to initialize
-          else { await new Promise(r => setTimeout(r, 500)) } // prevent sending burst of requests
+          else { await new Promise(r => setTimeout(r, 1500)) } // prevent sending burst of requests
           this.liveProbes[channel] = new StreamProbe(channel, this.language)
         }
       })
@@ -129,10 +129,10 @@ class StreamProbe {
     this.max = 5 // minutes
     this.min = 1 // minutes
     this.isActive = true
-    this.serverPool = {}
+    this.addrPool = {}
     this.transactionBuffer = {}
     // modes: 'random', 'backoff-strict', 'exp-backoff'
-    this.intervalGenerator = new intervalGenerator('backoff-strict' ,this.max, this.min)
+    this.intervalGenerator = new intervalGenerator('random' ,this.max, this.min)
 
     // network connection related variables
     this.networkErrorCount = 0
@@ -165,59 +165,66 @@ class StreamProbe {
 
   onAddressHit(addr) {
     Pen.write(`Edge server of ${this.channel}(${this.language}) is ${addr}`, 'white')
-    if (Object.prototype.hasOwnProperty.call(this.serverPool, addr)) {
-      this.serverPool[addr] += 1
+    if (Object.prototype.hasOwnProperty.call(this.addrPool, addr)) {
+      this.addrPool[addr] += 1
       // TODO: write transaction to DB
     } else {
-      this.serverPool[addr] += 1
+      this.addrPool[addr] += 1
     }
-    this.intervalGenerator.updateServerCount(Object.keys(this.serverPool).length)
+    this.intervalGenerator.updateServerCount(Object.keys(this.addrPool).length)
     this.transactionBuffer[this.getCurrentTimeString()] = addr
   }
 
-  async handleError(error) {
+  async handleError(originalError) {
     try {
-      const errorStatus = error.response.status
-      const errorMessage = error.response.data[0].error
-      const errorCode = error.response.data[0].error_code
-      const outputErrorMsg = `Channel: "${this.channel}" returned status "${errorStatus}" with error code "${errorCode}" and message "${errorMessage}"`
+      if (originalError.response === undefined) { // should be a timeout error 
+        console.log(originalError.errno)
+        console.log(originalError.code)
+        console.log(originalError.name)
+      } else {
+        console.log(originalError.errno)
+        const errorStatus = originalError.response.status
+        const errorMessage = originalError.response.data[0].error
+        const errorCode = originalError.response.data[0].error_code
+        const outputErrorMsg = `Channel: "${this.channel}" returned status "${errorStatus}" with error code "${errorCode}" and message "${errorMessage}"`
+        Pen.write(outputErrorMsg, 'red')
+          
+        switch (errorStatus) {
+          /* 404: page not found, meaning channel is offline */
+          case 404:
+            Pen.write(`Channel ${this.channel} is offline. Clearing probe...`, 'yellow')
+            this.clearProbingFunc()
+            break
 
-      Pen.write(outputErrorMsg, 'red')
+          /* 403: forbidden, currently I've identified two cases:
+            - content_geoblocked (e.g. franchiseglobalart )
+            - nauth_token_expired
+          */
+          case 403:
+            // use switch case instead of if/else in case there are other kinds of errors in the future
+            switch (errorCode) {
+              case 'content_geoblocked':
+                this.clearProbingFunc()
+                break
+              case 'nauth_token_expired':
+                clearTimeout(this.probingTimer)
+                Pen.write(`Updating token for channel ${this.channel}`, 'yellow')
+                Twitch.updateChannelToken(this.channel)
+                  .then((token) => {
+                    this.token = token
+                    Pen.write(`Restarting probing for channel ${this.channel}`, 'yellow')
+                    this.start()
+                  }) // restart probing with new token
+                break
+            }
+            break
 
-      switch (errorStatus) {
-        /* 404: page not found, meaning channel is offline */
-        case 404:
-          this.clearProbingFunc()
-          break
-
-        /* 403: forbidden, currently I've identified two cases:
-          - content_geoblocked (e.g. franchiseglobalart )
-          - nauth_token_expired
-        */
-        case 403:
-          // use switch case instead of if/else in case there are other kinds of errors in the future
-          switch (errorCode) {
-            case 'content_geoblocked':
-              this.clearProbingFunc()
-              break
-            case 'nauth_token_expired':
-              clearTimeout(this.probingTimer)
-              Pen.write(`Updating token for channel ${this.channel}`, 'yellow')
-              Twitch.updateChannelToken(this.channel)
-                .then((token) => {
-                  this.token = token
-                  Pen.write(`Restarting probing for channel ${this.channel}`, 'yellow')
-                  this.start()
-                }) // restart probing with new token
-              break
-          }
-          break
-
-        default:
-          // TODO: some logic to handle other errors (e.g. server errors)
-          this.clearProbingFunc()
+          default:
+            // TODO: some logic to handle other errors (e.g. server errors)
+            this.clearProbingFunc()
+        }
       }
-    } catch (error) {
+    } catch (unknownError) {
       /* This happens when the error is undefined, which usually means that Nord is changing servers
           and there is a temporary network disconnection
        */
@@ -226,6 +233,11 @@ class StreamProbe {
         this.networkIsUp = false
         this.clearProbingFunc()
       } else {
+        Pen.write(`Logging unknown error...\n`, 'red')
+        console.log(unknownError)
+        Pen.write(`Logging original error...\n`, 'red')
+        console.log(originalError)
+
         Pen.write(`Nord is probally changing its servers. Probe for ${this.channel} temporarily sleeping for 60 seconds...`, 'red')
         clearTimeout(this.probingTimer)
         await new Promise(r => setTimeout(r, 60 * 1000))
@@ -235,7 +247,7 @@ class StreamProbe {
   }
 
   clearProbingFunc() {
-    const serverList = Object.keys(this.serverPool)
+    const serverList = Object.keys(this.addrPool)
 
     clearTimeout(this.probingTimer)
     this.isActive = false
@@ -252,7 +264,7 @@ class StreamProbe {
       start: this.createdTimestamp,
       end: this.getCurrentTimeString(),
       transactionList: this.transactionBuffer,
-      serverPool: Object.keys(this.serverPool)
+      addrPool: Object.keys(this.addrPool)
     }
     transactionDb.insert(transaction)
       .then(res => {
@@ -271,7 +283,8 @@ class StreamProbe {
 module.exports = ProbingPool
 
 if (require.main === module) {
-  const probe = new StreamProbe('loltyler1')
+
+  // const probe = new StreamProbe('lck')
   const probingPool = new ProbingPool('zh')
   probingPool.run()
 }

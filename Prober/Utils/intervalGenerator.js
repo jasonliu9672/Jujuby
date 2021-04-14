@@ -1,4 +1,4 @@
-const Pen = require('../Pen.js')
+const { Pen } = require('../Pen.js')
 
 class intervalGenerator {
   constructor(mode, max, min) {
@@ -10,10 +10,11 @@ class intervalGenerator {
     this.totalIntervals = 0
     this.epsilon = (this.max - this.min) / 10
   }
-
+  // TODO: need to introduce randomness for backoff-strict and exp-backoff. Else there will be 
+  // bursts of packets in the lower viewer count region. 
   generateInterval() {
       this.totalIntervals += 1
-      var interval
+      let interval
       if (this.mode == 'backoff-strict'){
           if (this.serverCount == 0) {
             // irregular behavior, an Error might have happened
@@ -43,6 +44,11 @@ class intervalGenerator {
   updateServerCount(serverCount) {
       this.serverCount = serverCount
   }
+}
+
+if (require.main === module) {
+  ig = new intervalGenerator('backoff-strict' ,5, 1)
+  ig.generateInterval() 
 }
 
 module.exports = intervalGenerator

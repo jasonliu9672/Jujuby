@@ -5,7 +5,7 @@ const Docker = Object.freeze({
   runProbeContainer: async (containerName, containerId, serverId, languages, percentages, country) => {
     /* Cannot use -it flag here */
     const cmd = [
-      `docker run -d --rm --cap-add=NET_ADMIN --cap-add=SYS_MODULE --device /dev/net/tun --name ${containerName}`,
+      `docker run -itd --rm --cap-add=NET_ADMIN --cap-add=SYS_MODULE --device /dev/net/tun --name ${containerName}`,
       '--sysctl net.ipv4.conf.all.rp_filter=2',
       '--ulimit memlock=-1:-1',
       `--network ${process.env.DOCKER_NETWORK}`,

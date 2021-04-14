@@ -1,9 +1,10 @@
+const path = require('path')
 const { Worker } = require('worker_threads')
 const Twitch = require('../Twitch.js')
 
 function runService(workerData) {
   return new Promise((resolve, reject) => {
-    const worker = new Worker('./Utils/service.js', { workerData })
+    const worker = new Worker(path.resolve(__dirname, 'service.js'), { workerData })
     worker.on('message', resolve)
     worker.on('error', reject)
     worker.on('exit', (code) => {
@@ -22,5 +23,5 @@ const getTopKChannels = async (language = 'es', percentage = 0.8) => {
 module.exports = { getTopKChannels }
 
 if (require.main === module) {
-  Twitch.getChannelsByLanguage('en').then(result => { console.log(result); console.log(result.length) })
+  getTopKChannels(language='zh') // .then(result => { console.log(result) })
 }

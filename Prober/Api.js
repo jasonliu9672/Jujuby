@@ -1,5 +1,7 @@
-const { URL } = require('url') // (native) provides utilities for URL resolution and parsing
 const axios = require('axios')
+const http = require('http')
+const https = require('https')
+const { URL } = require('url') // (native) provides utilities for URL resolution and parsing
 const { lookupDNSCache } = require('./Cache/DNSCache.js')
 const { addReqCount } = require('./RequestLogger.js')
 
@@ -10,7 +12,21 @@ const clientIdForHelixApi = '2xrd133djme37utzs215bqmwwz6hve' // client id for ge
 const clientSecret = 'l5rahrb544myhzf6dopcc9cy5aq95t' // client secret obtained from app registration
 
 /* Add axios interceptor to do address replacement before every request */
-const axiosLookupBeforeRequest = axios.create({})
+const axiosLookupBeforeRequest = axios.create({
+  // 30 sec timeout
+  timeout: 30 * 1000,
+
+  //keepAlive pools and reuses TCP connections, so it's faster
+  httpAgent: new http.Agent({ keepAlive: true }),
+  httpsAgent: new https.Agent({ keepAlive: true }),
+  
+  //follow up to 10 HTTP 3xx redirects
+  maxRedirects: 10,
+  
+  //cap the maximum content length we'll accept to 50MBs, just in case
+  maxContentLength: 50 * 1000 * 1000
+})
+
 axiosLookupBeforeRequest.interceptors.request.use(async (config) => {
   addReqCount()
 
@@ -20,10 +36,7 @@ axiosLookupBeforeRequest.interceptors.request.use(async (config) => {
   config.headers.Host = urlObj.hostname // need original host name for TLS certificate
   urlObj.host = addr
   config.url = urlObj.toString()
-  
-  if (config.headers.Host === 'api.twitch.tv') {
-    config.headers.Authorization = `Bearer ${accessToken}`
-  }
+
   return config
 })
 
@@ -38,10 +51,15 @@ const buildOptions = (api, args) => {
   switch (urlObj.hostname) {
     case 'api.twitch.tv':
       if (urlObj.pathname.split('/').slice(-1)[0] === 'access_token') {
-        console.log('yes')
+        // console.log('Using old api token')
         options.headers = { Accept: acceptType, 'Client-Id': clientIdForOldApi }
       } else {
-        options.headers = { Accept: acceptType, Authorization: '', 'Client-Id': clientIdForHelixApi }
+        // console.log('Using helix token')
+        options.headers = { 
+          Accept: acceptType, 
+          Authorization: `Bearer ${accessToken}`, 
+          'Client-Id': clientIdForHelixApi 
+        }
       }
       options.params = { ...{ as3: 't' }, ...args }
       break
@@ -73,12 +91,14 @@ class API {
 
   static twitchAPI(path, args) {
     const api = `https://api.twitch.tv${path}`
-    return axiosLookupBeforeRequest.get(api, buildOptions(api, args))
+    // return axiosLookupBeforeRequest.get(api, buildOptions(api, args))
+    return axios.get(api, buildOptions(api, args))
   }
 
   static usherAPI(path, args) {
     const api = `https://usher.ttvnw.net${path}`
-    return axiosLookupBeforeRequest.get(api, buildOptions(api, args))
+    // return axiosLookupBeforeRequest.get(api, buildOptions(api, args))
+    return axios.get(api, buildOptions(api, args))
   }
 
   static hostingAPI(path, args) {
@@ -121,82 +141,40 @@ if (require.main === module) {
   }
 
   const test = async () => {
-    // get Channel Id
-    // const testId = await API.twitchAPI('/helix/users', { login: channel })
-    //   .then(response => { return response.data.data[0].id })
-    // console.log(testId)
-    // await sleep(1000)
-    // /// check Online
-    // const isOnline = await API.twitchAPI('/helix/streams', { user_id: testId })
-    //   .then(response => {
-    //     const stream = response.data.data
-    //     if (stream.length > 0) { return true }
-    //     return false
-    //   })
-    // console.log(isOnline)
-    // /// search channel title
-    // const channelTitle = await API.twitchAPI('/helix/search/channels', { query: 437148541 })
-    //   .then(response => {
-    //     return response.data.data
-    //   })
-    // console.log(channelTitle)
-    // // getChannels
-    // let keepGoing = true
-    // let localOffset = 0
-    // let after = ''
-    // const records = []
-    // while (keepGoing && localOffset <= 100) {
-    //   const response = await API.twitchAPI('/helix/streams', { language: 'zh', limit: 100, after: after })
-    //   const liveChannels = response.data.data
-    //   console.log(liveChannels)
-    //   const liveChannelsDisplayName = await Promise.all(liveChannels.map(channel => {
-    //     return API.twitchAPI('/helix/search/channels', { query: channel.user_name })
-    //       .then(response => {
-    //         return Promise.resolve(response.data.data.filter(candidate => candidate.is_live)[0].display_name)
-    //       })
-    //   }))
-    //   // const liveChannelsDisplayName = await Promise.all(liveChannels.map(channel => channel.user_id))
-    //   records.push(liveChannels.map((channel, index) => { return { display_name: liveChannelsDisplayName[index], viewer_count: channel.viewer_count } }))
-    //   after = response.data.pagination.cursor
-    //   localOffset += response.data.data.length
-    //   if (liveChannels.length === 0) { keepGoing = false }
-    // }
-    // console.log([].concat.apply([], records).sort((a, b) => (a.viewer_count > b.viewer_count) ? -1 : ((b.viewer_count > a.viewer_count) ? 1 : 0)))
-    // API.twitchAPI(`/helix/channels`, { broadcaster_id: "514164340"})
-    //   .then(response => { console.log(response.data.data) })
-    // // get channel access token
     await API.twitchAPI(`/api/channels/lck/access_token`)
       .then(response => console.log(response.data))
-    // const params = {
-    //   player: 'twitchweb',
-    //   token: token.token,
-    //   sig: token.sig,
-    //   allow_audio_only: true,
-    //   allow_source: true,
-    //   p: Math.floor(Math.random() * 99999) + 1
-    // }
-    // await API.usherAPI(`/api/channel/hls/xargon0731.m3u8`, params)
-    // .then(response => console.log(response.data))
-    // // check is hosting
-    // await API.hostingAPI('/hosts', { include_logins: 1, host: testId })
-    //  .then(response => {
-    //    const hostInfo = response.data.hosts[0]
-    //    console.log(hostInfo)
-    //    if (('target_login' in hostInfo) && (hostInfo.target_login.toLowerCase() !== channel)) {
-    //      return true
-    //    }
-    //    return false
-    //  })
   }
-  // test()
 
-  const testUsherToken = async => {
+  const testUsherToken = async () => {
     API.gqlAPI('/gql', API.buildGqlString('lck'))
       .then( (response) => {
         console.log(response.data.data.streamPlaybackAccessToken)
       }) 
   }
-  testUsherToken()
+  // testUsherToken()
+
+  function onError(e) {
+    console.log(e)
+    console.log(e.name)
+    console.log('Dealing with timeout error....')
+  } 
+
+  function foo() {
+    return axiosLookupBeforeRequest.get("http://254.243.6.76/")
+  }
+
+  function bar() {
+    return foo()
+      .then(r => r.data)
+  }
+
+  function baz() {
+    bar()
+      .then(r => r.data)
+      .catch(e => onError(e))
+  }
+
+  baz()
 }
 
 module.exports = API

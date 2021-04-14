@@ -4,7 +4,7 @@ class RequestLogger {
   constructor() { 
     this.cacheInfoPool = {} 
     this.requestCount = 0 
-    this.reportRequestCountInterval = 5 // seconds
+    this.reportRequestCountInterval = 30 // seconds
     this.reportRequestCountTimer = setInterval(() => {
       let maxLen = [0, 0, 0]
       for (const value of Object.values(this.cacheInfoPool)) {

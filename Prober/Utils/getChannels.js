@@ -13,10 +13,10 @@ const getChannels = async (language = 'zh') => {
     const response = await API.twitchAPI('/helix/streams', { language: language, first: 100, after: cursor })
     const liveChannels = response.data.data
     if (liveChannels.length === 0) { break }
-    console.log(response.data.data[0].user_login)
-    liveChannels.map(data => { records.push(data.user_login) })
+    // console.log(response.data.data[0].user_login)
+    liveChannels.map(data => { records.push(data) })
     cursor = response.data.pagination.cursor
-    console.log(records.length)
+    // console.log(records.length)
   }
   return records
 }
