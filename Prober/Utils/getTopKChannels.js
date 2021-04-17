@@ -1,5 +1,6 @@
 const path = require('path')
 const { Worker } = require('worker_threads')
+const { Pen } = require('../Pen.js')
 const Twitch = require('../Twitch.js')
 
 function runService(workerData) {
@@ -16,7 +17,7 @@ function runService(workerData) {
 const getTopKChannels = async (language = 'es', percentage = 0.8) => {
   const allChannels = await Twitch.getChannelsByLanguage(language)
   const topKChannels = await runService({ data: allChannels, percentage: percentage })
-  console.log(`Returning ${topKChannels.length} out of ${allChannels.length} for ${language} channels`)
+  Pen.write(`Returning ${topKChannels.length} out of ${allChannels.length} for ${language} channels`, 'green')
   return topKChannels
 }
 

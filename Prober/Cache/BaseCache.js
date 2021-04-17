@@ -1,4 +1,5 @@
 const { updateLoggerCacheInfo } = require('../RequestLogger')
+const { Pen } = require('../Pen.js')
 
 class BaseCache {
   constructor () {
@@ -12,13 +13,14 @@ class BaseCache {
   lookup (entry) {
     return new Promise(async (resolve, reject) => {
       if (!this.cache[entry]) {
-        console.log(`${this.childClass} cache miss: ${entry}`)
-        await this.onMiss(entry)
         this.cacheMisses += 1
+        Pen.write(`${this.childClass} cache miss: ${entry}`, 'white')
+        await this.onMiss(entry).catch(error => reject(error))
       } else { this.cacheHits += 1 }
-      resolve(this.cache[entry])
       this.totalLookups += 1 
       updateLoggerCacheInfo(this.childClass, this.cacheInfo())
+      
+      resolve(this.cache[entry])
     })
   }
 

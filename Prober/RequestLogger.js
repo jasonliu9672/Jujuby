@@ -22,10 +22,13 @@ class RequestLogger {
 
   addRequestCount() { this.requestCount += 1 }
 
+  getRequestCount() { return this.requestCount }
+
 }
 
 const rlogger = new RequestLogger()
 const updateLoggerCacheInfo = (cacheType, info) => { rlogger.cacheInfoPool[cacheType] = info }
 const addReqCount = () => { rlogger.addRequestCount() }
+const getReqCount = () => { rlogger.getRequestCount() }
 
-module.exports = { updateLoggerCacheInfo, addReqCount } 
+module.exports = { updateLoggerCacheInfo, addReqCount, getReqCount } 

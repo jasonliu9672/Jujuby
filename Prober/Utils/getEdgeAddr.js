@@ -3,6 +3,14 @@ const API = require('../Api.js')
 const { lookupStreamCache } = require('../Cache/StreamInfoCache.js')
 const { lookupDNSCache } = require('../Cache/DNSCache.js')
 const m3u8Parser = require('m3u8-parser')
+const { rejects } = require('assert')
+
+class getAddrError extends Error {
+  constructor(message) {
+    super(message)
+    this.name = 'getAddrError'
+  }
+}
 
 function getAccessToken (channel) {
   return lookupStreamCache(channel).then(response => response.accessToken)
@@ -24,7 +32,7 @@ function getMasterPlaylist (token, channel) {
 }
 
 // get Media Playlist that contains URLs of the files needed for streaming
-function parseMasterPlaylist (playlist, channel) {
+function parseMasterPlaylist (playlist) {
   const parsedPlaylist = []
   const lines = playlist.split('\n')
   for (let i = 4; i < lines.length - 1; i += 3) {
@@ -67,7 +75,7 @@ function getEdgeUrl (raw) {
 function getEdgeAddr (channel) {
   return getAccessToken(channel)
     .then(token => getMasterPlaylist(token, channel))
-    .then(masterPlaylist => parseMasterPlaylist(masterPlaylist, channel))
+    .then(masterPlaylist => parseMasterPlaylist(masterPlaylist))
     .then(playlists => getBestQualityPlaylistUri(playlists))
     .then(uri => getPlaylistContent(uri))
     .then(rawContent => {
@@ -75,7 +83,13 @@ function getEdgeAddr (channel) {
       return urlObj.hostname
     })
     .then(hostname => lookupDNSCache(hostname))
-    .catch(error => { throw error })
+    .catch(error => { 
+      if (error.isAxiosError) { 
+        throw error 
+      } else {
+        throw new getAddrError(error.message)
+      } 
+    })
 }
 
 module.exports = { getEdgeAddr }
@@ -86,21 +100,10 @@ if (require.main === module) {
       setTimeout(resolve, ms)
     })
   }
-  const channel = 'relaxing234'
+  const channel = 'loltyler1'
   const testMultiCall = async (channel) => {
     getEdgeAddr(channel).then(addr => console.log(addr))
     // await sleep(1000)
-    // getEdgeAddr(channel).then(addr => console.log(addr))
-    // await sleep(1000)
-    // getEdgeAddr(channel).then(addr => console.log(addr))
-    // await sleep(1000)
-    // getEdgeAddr(channel).then(addr => console.log(addr))
-    // await sleep(1000)
-    // getEdgeAddr(channel).then(addr => console.log(addr))
-  }
-
-  const test = async (channel) => {
-    console.log('Hello World')
   }
 
   testMultiCall(channel)

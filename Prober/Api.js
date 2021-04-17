@@ -1,9 +1,10 @@
 const axios = require('axios')
 const http = require('http')
 const https = require('https')
+const { MongoTimeoutError } = require('mongodb')
 const { URL } = require('url') // (native) provides utilities for URL resolution and parsing
 const { lookupDNSCache } = require('./Cache/DNSCache.js')
-const { addReqCount } = require('./RequestLogger.js')
+const { addReqCount, getReqCount } = require('./RequestLogger.js')
 
 
 const accessToken = 'kqk4tnkzso320k8q20zmmo9aadniai'
@@ -128,7 +129,7 @@ class API {
 
   static clearReportTimer() { clearInterval(reportRequestCountTimer) }
 
-  static getRequestCount() { return requestCount }
+  static getRequestCount() { return getReqCount() }
 }
 
 /* For testing */
@@ -151,30 +152,55 @@ if (require.main === module) {
         console.log(response.data.data.streamPlaybackAccessToken)
       }) 
   }
-  // testUsherToken()
+  
 
   function onError(e) {
     console.log(e)
     console.log(e.name)
+    console.log(e.message)
+    console.log((e instanceof TypeError))
     console.log('Dealing with timeout error....')
   } 
-
   function foo() {
     return axiosLookupBeforeRequest.get("http://254.243.6.76/")
   }
-
   function bar() {
     return foo()
       .then(r => r.data)
   }
-
   function baz() {
     bar()
       .then(r => r.data)
       .catch(e => onError(e))
   }
 
-  baz()
+  async function inputTypeError(x) {
+    if (typeof x === "string") {
+      console.log('Valid input')
+    } else {
+      console.log(typeof x)
+      throw TypeError('Wrong input type!') 
+    }
+  }
+
+  function rtnPromise(x) {
+    return new Promise(async (resolve, reject) => {
+      await inputTypeError(x).catch(error => { reject(error) })
+      resolve('Great guess!')
+    })
+  }
+
+  function rtnPromise2(x) { return rtnPromise(x).then(x => x) } 
+
+  function run(x) {
+    rtnPromise2(x)
+      .then(r => { console.log(r) })
+      .catch(error => { console.log(`Uh-oh, encountered error: ${error.message}!!`)})
+  }
+  
+  // run(123)
+  // testUsherToken()
+  // baz()
 }
 
 module.exports = API

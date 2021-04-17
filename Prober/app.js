@@ -10,33 +10,20 @@ const app = express()
 const port = 3000
 const languages = process.env.LANGUAGE.split(',')
 const percentages = process.env.PERCENTAGES.split(',')
-const poolParams = languages.map((e, i) => {
-  return [e, percentages[i]]
-})
+// poolParams = [ ['zh', '80'], ['en', '50'], ['es', '10'] ]
+const poolParams = languages.map((lang, idx) => { return [lang, percentages[idx]] })
+
 const pools = []
-poolParams.forEach((poolParam) => pools.push(new ProbingPool(poolParam[0], poolParam[1])))
-// const pool = new ProbingPool(process.env.LANGUAGE)
+poolParams.forEach((poolParam) =>  {
+  const [lang, percentageStr] = poolParam
+  const percentage = parseInt(percentageStr) / 100
+  pools.push(new ProbingPool(lang, percentage)) 
+})
 
-// app.get('/api/info/liveprobes', (req, res) => {
-//   res.send({ liveProbes: pools.reduce((accumulator, currentPool) => accumulator + currentPool.getLiveProbes()) })
-//   // res.send({ liveProbes: pool.getLiveProbes() })
-// })
-
-// app.get('/api/count', (req, res) => {
-//   res.send({ requestCount: API.getRequestCount() })
-// })
 app.get('/api/status', (req, res) => {
-  // readLastLines.read('log.txt', 20).then((lines) => {
-  //   res.send({
-  //     requestCount: API.getRequestCount(),
-  //     liveProbes: pools.reduce((accumulator, currentPool) => accumulator + currentPool.getLiveProbes(), 0),
-  //     latestLogs: lines
-  //   })
-  // }).catch(err => console.log(err))
   res.send({
     requestCount: API.getRequestCount(),
     liveProbes: pools.reduce((accumulator, currentPool) => accumulator.concat(currentPool.getLiveProbes()), []),
-    // liveProbes: pools[0].getLiveProbes(),
     latestLogs: logBuffer
   })
 })

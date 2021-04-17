@@ -23,6 +23,9 @@ const Docker = Object.freeze({
       await execSync(cmd)
       const stdout = await execSync('docker ps')
       console.log(stdout.toString())
+      console.log(`Country list: ${country.replace(/ /g, '_')}`)
+      console.log(`Language list: ${languages.join(',')}`)
+      console.log(`Percentages: ${percentages.join(',')}`)
       if (stdout.toString().includes(containerName)) {
         return true
       }

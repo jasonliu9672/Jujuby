@@ -2,3 +2,4 @@
 /MongoData
 /RedisData
 /Secret
+*.logs

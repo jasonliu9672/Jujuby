@@ -1,5 +1,13 @@
 const BaseCache = require('./BaseCache.js')
-const API = require('../Api.js')
+const API = require('../Api.js');
+const { axiosLookupBeforeGet } = require('../Api.js');
+
+class StreamInfoCacheError extends Error {
+  constructor(message) {
+    super(message)
+    this.name = 'StreamInfoCacheError'
+  }
+}
 
 class StreamInfoCache extends BaseCache {
   constructor() { super(); this.childClass = 'StreamInfoCache' }
@@ -9,11 +17,19 @@ class StreamInfoCache extends BaseCache {
       .then(response => {
         this.cache[channel] = { channelId: response[0], accessToken: response[1] }
       })
+      .catch(error => {
+        if (error.isAxiosError) {
+          reject(error)
+        } else {
+          console.log(error)
+          reject(new StreamInfoCacheError(error.message))
+        }
+      })
   }
 
   getChannelId(channel) {
     return API.twitchAPI('/helix/users', { login: channel })
-      .then(response => response.data.data[0].id) // get channel id
+      .then(response => response.data.data[0].id) /* get user id */
   }
 
   getChannelAccessToken(channel) {
@@ -28,7 +44,6 @@ class StreamInfoCache extends BaseCache {
         return token
       })
   }
-
 }
 
 const localStreamCache = new StreamInfoCache()
