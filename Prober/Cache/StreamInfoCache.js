@@ -1,6 +1,5 @@
 const BaseCache = require('./BaseCache.js')
 const API = require('../Api.js');
-const { axiosLookupBeforeGet } = require('../Api.js');
 
 class StreamInfoCacheError extends Error {
   constructor(message) {

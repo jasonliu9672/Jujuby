@@ -341,7 +341,37 @@ module.exports = ProbingPool
 
 if (require.main === module) {
 
-  const probe = new StreamProbe('loltyler1')
+  // const probe = new StreamProbe('loltyler1')
   // const probingPool = new ProbingPool('zh')
   // probingPool.run()
+
+  class MyCustomError extends Error {
+    constructor(message) {
+      super(message)
+      this.name = 'MyCustomError'
+    }
+  }
+
+  async function x(xx) {
+    await new Promise(async (resolve, reject) => {
+      const axios = require('axios')
+      await axios.get('http://254.243.6.76/')
+        .then(r => { resolve(r); console.log(r) })
+        .catch(e => {
+          if (e.isAxiosError && (typeof xx === 'string')) {
+            reject(e)
+          } else {
+            reject(new MyCustomError(e.message))
+          }
+        })
+    })
+  }
+
+  function run(xx) {
+    x(xx)
+    .then(r => console.log(r)) 
+    .catch(e => { console.log(e) }) 
+  }
+
+  run(123)
 }

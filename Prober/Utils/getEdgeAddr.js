@@ -84,7 +84,7 @@ function getEdgeAddr (channel) {
     })
     .then(hostname => lookupDNSCache(hostname))
     .catch(error => { 
-      if (error.isAxiosError) { 
+      if (error.isAxiosError || error.name === 'StreamInfoCacheError') { 
         throw error 
       } else {
         throw new getAddrError(error.message)
