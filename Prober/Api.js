@@ -7,10 +7,13 @@ const { lookupDNSCache } = require('./Cache/DNSCache.js')
 const { addReqCount, getReqCount } = require('./RequestLogger.js')
 
 
-const accessToken = 'kqk4tnkzso320k8q20zmmo9aadniai'
+// const accessToken = 'kqk4tnkzso320k8q20zmmo9aadniai'
 const clientIdForOldApi = 'kimne78kx3ncx6brgo4mv6wki5h1ko'
-const clientIdForHelixApi = '2xrd133djme37utzs215bqmwwz6hve' // client id for getting the api token
-const clientSecret = 'l5rahrb544myhzf6dopcc9cy5aq95t' // client secret obtained from app registration
+// const clientIdForHelixApi = '2xrd133djme37utzs215bqmwwz6hve' // client id for getting the api token
+// const clientSecret = 'l5rahrb544myhzf6dopcc9cy5aq95t' // client secret obtained from app registration
+const clientIdForHelixApi = '4q2n7zlq4tvwngsh0102dl649camkt'
+const clientSecret = 'cce6pbnf5h0b0gpieg4zj28anmnkl2'
+const accessToken = 'b428gpq4epc023we6glk1sfnbh4h10'
 
 /* Add axios interceptor to do address replacement before every request */
 const axiosLookupBeforeRequest = axios.create({
@@ -81,6 +84,14 @@ const buildOptions = (api, args) => {
 class API {
   static axiosLookupBeforeGet(api, args) { return axiosLookupBeforeRequest.get(api, args) }
   
+  /**
+   * The following arguments are required for a successful request to Twitch's helix API:
+   * Client ID, Client secret, Access token. The access token is obtained from api: https://id.twitch.tv/oauth2/token
+   * taking client_id, client_secret, and grant_type as arguments. 
+   * The access token has a valid duration, in which it will expire once exceeded and will require a renew.
+   * We can know when it expires if we get an 401 response from the helix api. 
+   */
+
   static authAPI(type, args) {
     const api = 'https://id.twitch.tv'
     if (type === 'request') { // request for api token
@@ -92,14 +103,14 @@ class API {
 
   static twitchAPI(path, args) {
     const api = `https://api.twitch.tv${path}`
-    // return axiosLookupBeforeRequest.get(api, buildOptions(api, args))
-    return axios.get(api, buildOptions(api, args))
+    return axiosLookupBeforeRequest.get(api, buildOptions(api, args))
+    // return axios.get(api, buildOptions(api, args))
   }
 
   static usherAPI(path, args) {
     const api = `https://usher.ttvnw.net${path}`
-    // return axiosLookupBeforeRequest.get(api, buildOptions(api, args))
-    return axios.get(api, buildOptions(api, args))
+    return axiosLookupBeforeRequest.get(api, buildOptions(api, args))
+    // return axios.get(api, buildOptions(api, args))
   }
 
   static hostingAPI(path, args) {
@@ -199,7 +210,7 @@ if (require.main === module) {
   }
   
   // run(123)
-  // testUsherToken()
+  testUsherToken()
   // baz()
 }
 

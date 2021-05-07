@@ -2,6 +2,7 @@ const API = require('./Api.js')
 const { lookupStreamCache, updateChannelToken } = require('./Cache/StreamInfoCache.js')
 const { getEdgeAddr } = require('./Utils/getEdgeAddr.js')
 const { getChannels } = require('./Utils/getChannels.js')
+const { batchGetStreamInfo } = require('./Utils/getStreamInfo.js')
 
 /**
  * All methods under the Twitch class returns a Promise
@@ -20,6 +21,8 @@ class Twitch {
   static updateChannelToken(channel) { return updateChannelToken(channel) }
 
   static getChannelsByLanguage(language) { return getChannels(language) }
+
+  static getStreamInfoBatch(streams) { return batchGetStreamInfo(streams) }
 }
 
 module.exports = Twitch

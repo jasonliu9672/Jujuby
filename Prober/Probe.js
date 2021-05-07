@@ -16,38 +16,44 @@ class ProbingPool {
     this.isActive = true
 
     /* Variables that change across the probing period */
-    // TODO: let timer interval to be settable by api
     this.liveProbes = {}
-    this.cleanupInterval = 5 // minutes
-    this.refreshInterval = 20 // minutes
+    this.refreshViewerInterval = 3  // minutes
+    this.cleanupInterval       = 5  // minutes
+    this.refreshInterval       = 19 // minutes
 
     /* Timers */
     this.cleanUpInactiveProbesTimer = null
-    this.refreshTopKChannelsTimer = null
+    this.refreshTopKChannelsTimer   = null
+    this.refreshViewerCountTimer    = null
 
     /* Network related variables */
     this.networkErrorProbes = 0
-    this.refreshFailCount = 0
+    this.refreshFailCount   = 0
   }
+
+  run() { this.setup() }
 
   setup() {
     /* Cleanup inactive probes can run more frequently, but refreshing topK should be settable */
     this.cleanUpInactiveProbesTimer = setInterval(() => { this.cleanUpInactiveProbes() }, this.cleanupInterval * 60 * 1000)
     this.refreshTopKChannelsTimer = setInterval(() => { this.refreshTopKChannels() }, this.refreshInterval * 60 * 1000)
+    this.refreshViewerCountTimer = setInterval(() => { this.refreshViewerCount() }, this.refreshViewerInterval * 60 * 1000)
+
     this.start()
   }
-
-  run() { this.setup() }
 
   async start() {
     getTopKChannelsByLanguage(this.language, this.percentage)
       .then(async channels => {
-        channels = channels.slice(0, 1000) // limit to the first 500 channels 
+        const liveViewerCount = {} 
+        await Twitch.getStreamInfoBatch(channels).then(data => data.map(x => liveViewerCount[x.user_login] = x.viewer_count ))
+        /* After obtaining viewer count for each channel, then start probing for each channel */
         let initStatus = true
         for (const channel of channels) {
           if (initStatus) { await new Promise(r => setTimeout(r, 2000)); initStatus = false } // wait for cache to initialize
           else { await new Promise(r => setTimeout(r, 1500)) } // prevent sending burst of requests
           this.liveProbes[channel] = new StreamProbe(channel, this.language)
+          this.liveProbes[channel].updateViewerCount(liveViewerCount[channel])
         }
       })
   }
@@ -56,7 +62,7 @@ class ProbingPool {
     Pen.write('Refreshing top k channels...', 'blue')
     const oldTopKChannels = new Set(Object.keys(this.liveProbes))
     getTopKChannelsByLanguage(this.language, this.percentage)
-      .then(channels => {
+      .then(async (channels) => {
         const newTopKChannels = new Set(channels)
         const toBeAdded = [...newTopKChannels].filter(x => !oldTopKChannels.has(x))
         const toBeDeleted = [...oldTopKChannels].filter(x => !newTopKChannels.has(x))
@@ -64,7 +70,10 @@ class ProbingPool {
         if (toBeDeleted.length) { Pen.write(`Clearing ${toBeDeleted}`, 'blue') }
 
         for (const channel of toBeAdded) {
-          if (this.isActive) { this.liveProbes[channel] = new StreamProbe(channel, this.language) }
+          if (this.isActive) { 
+            this.liveProbes[channel] = new StreamProbe(channel, this.language) 
+            await new Promise(r => setTimeout(r, 1500)) /* Prevent burst of packets */
+          }
         }
         for (const channel of toBeDeleted) {
           if (channel in this.liveProbes) this.liveProbes[channel].clearProbingFunc()
@@ -78,6 +87,18 @@ class ProbingPool {
           Pen.write('Reported error to controller')
         }
       })
+  }
+
+  async refreshViewerCount() {
+    Pen.write('Refreshing viewer count...', 'blue')
+    Twitch.getStreamInfoBatch(Object.keys(this.liveProbes))
+      .then(data => data.map(x => { 
+        if (this.liveProbes[x.user_login].isActive) { 
+          const oldViewerCount = this.liveProbes[x.user_login].getViewerCount()
+          this.liveProbes[x.user_login].updateViewerCount(x.viewer_count) 
+          Pen.write(`Channel ${x.user_login} viewer updated from ${oldViewerCount} to ${this.liveProbes[x.user_login].getViewerCount()}`, 'white')
+        }
+      }))
   }
 
   cleanUpInactiveProbes() {
@@ -106,6 +127,8 @@ class ProbingPool {
   async stop() {
     clearInterval(this.cleanUpInactiveProbesTimer)
     clearInterval(this.refreshTopKChannelsTimer)
+    clearInterval(this.refreshViewerCountTimer)
+    
     while (Object.keys(this.liveProbes).length !== 0) {
       // eslint-disable-next-line no-unused-vars
       for (const [_, probe] of Object.entries(this.liveProbes)) { probe.clearProbingFunc(); await new Promise(r => setTimeout(r, 300)) }
@@ -131,7 +154,10 @@ class StreamProbe {
     this.min = 1 // minutes
     this.isActive = true
     this.addrPool = {}
+    this.currentViewerCount = null 
+
     this.transactionBuffer = {}
+    this.viewerBuffer = {}
     // modes: 'random', 'backoff-strict', 'exp-backoff'
     this.intervalGenerator = new intervalGenerator('random' ,this.max, this.min)
 
@@ -174,7 +200,10 @@ class StreamProbe {
       this.addrPool[addr] += 1
     }
     this.intervalGenerator.updateServerCount(Object.keys(this.addrPool).length)
-    this.transactionBuffer[this.getCurrentTimeString()] = addr
+    
+    const timestamp = this.getCurrentTimeString()
+    this.transactionBuffer[timestamp] = addr
+    this.viewerBuffer[timestamp] = this.currentViewerCount
   }
 
   async handleError(originalError) {
@@ -187,6 +216,7 @@ class StreamProbe {
             case 'ETIMEDOUT':
             case 'ECONNRESET':
             case 'EAI_AGAIN':
+            case 'ECONNABORTED': 
               Pen.write(`${axiosError.message}. Pause probing for ${this.channel} for ten minutes.`, 'red')
               clearTimeout(this.probingTimer)
               await new Promise(r => setTimeout(r, 10 * 60 * 1000))
@@ -315,12 +345,13 @@ class StreamProbe {
 
   writeTransaction() {
     const transaction = {
-      vpnServerId: process.env.CONNET,
+      vpnServerId: process.env.CONNECT,
       channel: this.channel,
       language: process.env.LANGUAGE,
       start: this.createdTimestamp,
       end: this.getCurrentTimeString(),
       transactionList: this.transactionBuffer,
+      viewerList: this.viewerBuffer,
       addrPool: Object.keys(this.addrPool)
     }
     transactionDb.insert(transaction)
@@ -335,12 +366,15 @@ class StreamProbe {
   getCurrentTimeString() { return new Date().toISOString().replace(/\..+/, '') }
 
   setTimerRange(min, max) { this.min = min; this.max = max }
+  
+  updateViewerCount(vc) { this.currentViewerCount = vc }
+  getViewerCount() { return this.currentViewerCount }
 }
 
 module.exports = ProbingPool
 
 if (require.main === module) {
-
+  const axios = require('axios')
   // const probe = new StreamProbe('loltyler1')
   // const probingPool = new ProbingPool('zh')
   // probingPool.run()
@@ -352,26 +386,31 @@ if (require.main === module) {
     }
   }
 
+  function getFakeAddr() {
+    return axios.get('http://254.243.6.76/')
+      .then(r => r )
+  }
+
   async function x(xx) {
-    await new Promise(async (resolve, reject) => {
-      const axios = require('axios')
-      await axios.get('http://254.243.6.76/')
-        .then(r => { resolve(r); console.log(r) })
-        .catch(e => {
-          if (e.isAxiosError && (typeof xx === 'string')) {
-            reject(e)
-          } else {
-            reject(new MyCustomError(e.message))
-          }
-        })
-    })
+    await Promise.all([getFakeAddr(), getFakeAddr()]) 
+      .then(r => console.log(r))
+      .catch(error => {
+        if (error.isAxiosError && (typeof xx === 'string')) {
+          throw error
+        } else {
+          throw new MyCustomError(error.message) 
+        }
+      })
   }
 
   function run(xx) {
     x(xx)
     .then(r => console.log(r)) 
-    .catch(e => { console.log(e) }) 
+    .catch(e => { 
+      console.log('Catched inside function "run" ')
+      console.log(`Error: ${e.code} | Message: ${e.message}`) 
+    }) 
   }
 
-  run(123)
+  run('123')
 }

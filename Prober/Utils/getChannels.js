@@ -1,5 +1,4 @@
 const API = require('../Api.js')
-const fs = require("fs");
 
 const getChannels = async (language = 'zh') => {
   const records = []
@@ -12,11 +11,9 @@ const getChannels = async (language = 'zh') => {
   while (true) {
     const response = await API.twitchAPI('/helix/streams', { language: language, first: 100, after: cursor })
     const liveChannels = response.data.data
-    if (liveChannels.length === 0) { break }
-    // console.log(response.data.data[0].user_login)
+    if ((liveChannels.length === 0) || (records.length > 99000)) { break } // calls api no more than 990 times
     liveChannels.map(data => { records.push(data) })
     cursor = response.data.pagination.cursor
-    // console.log(records.length)
   }
   return records
 }

@@ -12,7 +12,7 @@
 #     -v /home/nslab/Desktop/Jujuby/.envFiles/resolv.conf:/etc/resolv.conf \
 #     nslab/prober:official
 
-docker run -it --rm --cap-add=NET_ADMIN --cap-add=SYS_MODULE --device /dev/net/tun --name probe_test\
+docker run -itd --rm --cap-add=NET_ADMIN --cap-add=SYS_MODULE --device /dev/net/tun --name probe_test\
     --sysctl net.ipv4.conf.all.rp_filter=2 \
     --ulimit memlock=-1:-1 \
     --network jujuby_main-net\

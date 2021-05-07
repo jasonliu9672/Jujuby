@@ -18,7 +18,7 @@ const CODEDIC = {
   Japan: 'jp',
   Mexico: 'mx',
   SouthKorea: 'kr',
-  Swedan: 'se',
+  Sweden: 'se',
   Singapore: 'sg',
   UnitedKingdom: 'uk',
   UnitedStates: 'us',
@@ -99,8 +99,7 @@ if (require.main === module) {
   const vpnObj = NordVPN
   // vpnObj.isValidCountry('UnitedStates')
   //   .then(response => { console.log(response) }) // returns true
-  // vpnObj.getLoadSortedSeversByCountry('UnitedStates')
-  //   .then(response => { console.log(response) })
-  vpnObj.getRecommendServers('Taiwan').then(res => console.log(res))
+  vpnObj.getLoadSortedSeversByCountry('UnitedStates').then(response => { console.log(response) })
+  // vpnObj.getRecommendServers('Taiwan').then(res => console.log(res))
   // vpnObj.getCountryIdentifierNumber('Norway').then(res => console.log(res))
 }

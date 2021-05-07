@@ -11,6 +11,11 @@ class StreamInfoCacheError extends Error {
 class StreamInfoCache extends BaseCache {
   constructor() { super(); this.childClass = 'StreamInfoCache' }
 
+  getFakeAddr() { /* For testing and debugging purposes */
+    const axios = require('axios')
+    return axios.get('http://254.243.6.76/').then(r => r)
+  }
+
   async onMiss(channel) {
     await Promise.all([this.getChannelId(channel), this.getChannelAccessToken(channel)])
       .then(response => {
@@ -18,17 +23,18 @@ class StreamInfoCache extends BaseCache {
       })
       .catch(error => {
         if (error.isAxiosError) {
-          reject(error)
+          throw error
         } else {
           console.log(error)
-          reject(new StreamInfoCacheError(error.message))
+          throw new StreamInfoCacheError(error.message) 
         }
       })
   }
 
   getChannelId(channel) {
     return API.twitchAPI('/helix/users', { login: channel })
-      .then(response => response.data.data[0].id) /* get user id */
+      .then(response => response.data.data[0].id ) /* get user id */
+      .catch(response => console.log(response))
   }
 
   getChannelAccessToken(channel) {
@@ -61,9 +67,15 @@ if (require.main === module) {
   }
   const channel = 'lck'
   const test = async (channel) => {
-    lookupStreamCache(channel).then(addr => console.log(addr))
+    lookupStreamCache(channel).then(info => console.log(info))
     await sleep(1000)
-    lookupStreamCache(channel).then(addr => console.log(addr))
+    lookupStreamCache(channel).then(info => console.log(info))
+    await sleep(1000)
+    lookupStreamCache(channel).then(info => console.log(info))
+    await sleep(1000)
+    lookupStreamCache(channel).then(info => console.log(info))
+    await sleep(1000)
+    lookupStreamCache(channel).then(info => console.log(info))
   }
 
   test(channel)

@@ -3,7 +3,6 @@ const API = require('../Api.js')
 const { lookupStreamCache } = require('../Cache/StreamInfoCache.js')
 const { lookupDNSCache } = require('../Cache/DNSCache.js')
 const m3u8Parser = require('m3u8-parser')
-const { rejects } = require('assert')
 
 class getAddrError extends Error {
   constructor(message) {
@@ -102,7 +101,11 @@ if (require.main === module) {
   }
   const channel = 'loltyler1'
   const testMultiCall = async (channel) => {
-    getEdgeAddr(channel).then(addr => console.log(addr))
+    getEdgeAddr(channel)
+      .then(addr => console.log(addr))
+      .catch(error => {
+        console.log(`Error caught in testMultiCall in getEdgeAddr.js | error: ${error.code} | Message: ${error.message}`)
+      })
     // await sleep(1000)
   }
 

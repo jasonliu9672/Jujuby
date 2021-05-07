@@ -10,7 +10,6 @@ const app = express()
 const port = 3000
 const languages = process.env.LANGUAGE.split(',')
 const percentages = process.env.PERCENTAGES.split(',')
-// poolParams = [ ['zh', '80'], ['en', '50'], ['es', '10'] ]
 const poolParams = languages.map((lang, idx) => { return [lang, percentages[idx]] })
 
 const pools = []
