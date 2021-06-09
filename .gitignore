@@ -2,4 +2,6 @@
 /MongoData
 /RedisData
 /Secret
+*.log
 *.logs
+*.csv

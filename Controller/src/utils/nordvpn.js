@@ -18,7 +18,8 @@ const CODEDIC = {
   Japan: 'jp',
   Mexico: 'mx',
   SouthKorea: 'kr',
-  Sweden: 'se',
+  // Should be "Sweden" but the frontend as a typo as in "Swedan"
+  Swedan: 'se',
   Singapore: 'sg',
   UnitedKingdom: 'uk',
   UnitedStates: 'us',

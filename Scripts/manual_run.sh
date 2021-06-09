@@ -12,9 +12,11 @@
 #     -v /home/nslab/Desktop/Jujuby/.envFiles/resolv.conf:/etc/resolv.conf \
 #     nslab/prober:official
 
-CONTAINERNAME='probe-manual'
-SERVERID='us6286'
-COUNTRY='United_States'
+# SERVERID='us8667'
+# COUNTRY='United_States'
+SERVERID=$1
+COUNTRY=$2
+CONTAINERNAME="probe-manual-$SERVERID"
 LANGUAGES='zh,en,es,ko,fr'
 PERCENTAGES='80,60,60,80,80'
 
@@ -27,7 +29,6 @@ docker run -it --rm --cap-add=NET_ADMIN --cap-add=SYS_MODULE --device /dev/net/t
     -e COUNTRY=$COUNTRY \
     -e TECHNOLOGY=NordLynx \
     -e CONTROLLER_IP=172.27.0.2 \
-    -e ID=jncV6Ies- \
     -v /home/nslab/Desktop/Jujuby/Prober:/home/Prober \
     -v /home/nslab/Desktop/Jujuby/.envFiles/resolv.conf:/etc/resolv.conf \
     nslab/prober:2.0
